@@ -1,0 +1,29 @@
+@startuml Entity-relationship
+class Subscriber {
+  account: String <<unique>>
+  since: DateTime
+}
+
+class RawData {
+  payload: JSONB
+  provider: String
+}
+
+enum Subscribed {
+  account: String
+  provider: String
+  at: DateTime
+}
+
+enum Unsubscribed {
+  account: String
+  provider: String
+  at: DateTime
+}
+
+Subscriber ||--{ Subscribed
+Subscriber ||--{ Unsubscribed
+
+
+
+@enduml

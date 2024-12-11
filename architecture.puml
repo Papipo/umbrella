@@ -1,0 +1,63 @@
+@startuml Architecture
+!theme toy
+!define SPRITESURL https://raw.githubusercontent.com/plantuml-stdlib/gilbarbara-plantuml-sprites/v1.1/sprites
+!includeurl SPRITESURL/paypal.puml
+!includeurl SPRITESURL/stripe.puml
+
+actor Daisy
+actor Paul
+
+cloud 3rdParties {
+  rectangle "<$stripe>" as Stripe
+  rectangle "<$paypal>" as Paypal
+}
+
+frame "Umbrella Inc." {
+  boundary Integrations <<Webhook>>
+  database RawData
+  process Pipeline
+  queue "Domain events" <<Queue>> as EventQueue
+  collections "Current Subscribers" <<Projection>> as Subscribers
+  control Deduplicator <<Listener>> as Deduplicator
+  process Notifier <<Worker>> as Notifier
+}
+
+boundary EmailService
+
+Daisy -[#green]-> Stripe
+note left of link
+  Subscribe
+endnote
+Paul -[#red]-> Paypal
+
+note left of link
+  Unsubscribe
+endnote
+
+
+3rdParties -> Integrations
+Integrations --> RawData: store
+Pipeline <.. RawData: poll
+Pipeline -> EventQueue: publish
+
+EventQueue .> Deduplicator
+
+Deduplicator --> Subscribers
+note right of link
+  Upsert/Delete subscribers
+endnote
+Deduplicator .> Notifier: perform
+
+Notifier -> EmailService: send email
+
+note top of EventQueue
+  Normalized "subscribed"
+  and "unsubscribed" events
+endnote
+
+note bottom of Subscribers
+  Deduplicated subscribers
+endnote
+
+' Notifier --[hidden]> Deduplicator
+@enduml
