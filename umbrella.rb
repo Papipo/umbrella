@@ -4,12 +4,16 @@ class Umbrella
   end
 
   def accounts_with_reactivations
-    with("reactivation").map { |entry| entry["account"]}.uniq
+    accounts_with("reactivation").uniq
+  end
+
+  def accounts_with_multiple_cancellations
+    accounts_with("cancellation").tally.reject { |account, count| count < 2 }.keys
   end
 
   private
 
-  def with(event)
-    @payload.select { |entry| entry["event"] == event }
+  def accounts_with(event)
+    @payload.filter_map { |entry| entry["account"] if entry["event"] == event }
   end
 end
